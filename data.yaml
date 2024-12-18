@@ -1,0 +1,6 @@
+path : ../content/drive/MyDrive/Computer Vision/Training Models/Training Drowsy Awake Model AGAIN/data
+train: /content/drive/MyDrive/Computer Vision/Training Models/Training Drowsy Awake Model AGAIN/data/images
+val: /content/drive/MyDrive/Computer Vision/Training Models/Training Drowsy Awake Model AGAIN/data/images
+
+nc: 2
+names: ["knife","mask"]

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Violence Detection System - Live Detection</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            min-height: 100vh;
+        }
+        .detection-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .video-container {
+            background-color: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            aspect-ratio: 16/9;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .video-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .status-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        .detection-label {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 0;
+        }
+        .navbar {
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .navbar-brand {
+            font-weight: bold;
+        }
+        .control-button {
+            min-width: 120px;
+        }
+        .email-button-container {
+            margin-top: 2rem;
+            text-align: center;
+        }
+        #screenshotContainer p {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-shield-alt me-2"></i>
+                Violence Detection System
+            </a>
+            <div class="d-flex">
+                <a href="/" class="btn btn-outline-secondary">
+                    <i class="fas fa-home me-2"></i>Back to Home
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="detection-container">
+        <div class="row">
+            <div class="col-12">
+                <div class="video-container">
+                    <img class="video-feed" src="{{ url_for('video_feed') }}" alt="Live Detection Feed">
+                </div>
+            </div>
+        </div>
+
+        <!-- Captured Screenshots -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <h5 class="text-muted mb-3">Captured Screenshots</h5>
+                <div id="screenshotContainer" class="d-flex flex-wrap gap-3">
+                    <!-- Screenshots will be dynamically added here -->
+                </div>
+            </div>
+        </div>
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script>
+    function fetchScreenshot() {
+        fetch('/get_screenshot')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('No screenshot available');
+                }
+                return response.json();
+            })
+            .then(data => {
+                const container = document.getElementById('screenshotContainer');
+                
+                // Create a card for the latest screenshot
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.style.width = '200px';
+
+                card.innerHTML = `
+                    <img src="/${data.path}" class="card-img-top" alt="Screenshot">
+                    <div class="card-body">
+                        <p class="card-text">${new Date(data.timestamp * 1000).toLocaleString()}</p>
+                    </div>
+                `;
+
+                // Clear previous content and add new card
+                container.innerHTML = '';
+                container.appendChild(card);
+
+                // Send the screenshot via email
+                sendScreenshotEmail();
+            })
+            .catch(error => {
+                console.error(error);
+                const container = document.getElementById('screenshotContainer');
+                container.innerHTML = '<p>Waiting for new detection...</p>';
+            });
+    }
+
+    function sendScreenshotEmail() {
+        fetch('/send_screenshot', {
+            method: 'POST',
+        })
+        .then(response => response.json())
+        .then(data => {
+            showSuccessPopup('Email sent successfully');
+            // Clear the screenshot container after email is sent
+            const container = document.getElementById('screenshotContainer');
+            container.innerHTML = '<p>Waiting for new detection...</p>';
+            
+            // Clear the screenshots directory
+            return fetch('/clear_screenshots', {
+                method: 'POST'
+            });
+        })
+        .then(response => response.json())
+        .catch(error => {
+            console.error('Error:', error);
+            showErrorPopup('An error occurred. Please try again.');
+        });
+    }
+
+    function showSuccessPopup(message) {
+        // Create a success popup and display it
+        const successPopup = document.createElement('div');
+        successPopup.className = 'alert alert-success alert-dismissible fade show';
+        successPopup.setAttribute('role', 'alert');
+        successPopup.innerHTML = `
+            <strong>Success!</strong> ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+
+        // Append the popup to the body or a specific container
+        document.body.appendChild(successPopup);
+
+        // Automatically hide the popup after 3 seconds
+        setTimeout(() => {
+            successPopup.classList.remove('show');
+        }, 3000);
+    }
+
+    function showErrorPopup(message) {
+        // Create an error popup and display it
+        const errorPopup = document.createElement('div');
+        errorPopup.className = 'alert alert-danger alert-dismissible fade show';
+        errorPopup.setAttribute('role', 'alert');
+        errorPopup.innerHTML = `
+            <strong>Error!</strong> ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+
+        // Append the popup to the body or a specific container
+        document.body.appendChild(errorPopup);
+
+        // Automatically hide the popup after 3 seconds
+        setTimeout(() => {
+            errorPopup.classList.remove('show');
+        }, 3000);
+    }
+
+    // Modify the interval to be longer since we're waiting for new detections
+    setInterval(fetchScreenshot, 10000); // Check every 10 seconds
+    fetchScreenshot();  // Initial fetch
+    </script>
+</body>
+</html>
